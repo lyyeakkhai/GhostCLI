@@ -7,11 +7,13 @@ This directory contains the technical specifications, architectural designs, and
 ### 🏗️ Core Architecture & Strategy
 - **[architecture.md](./architecture.md)**: The high-level vision. Explains the transition from Node.js to Go and the "Unified Protocol" innovation.
 - **[new-architecture.md](./new-architecture.md)**: Part 1 of the technical deep-dive, focusing on the communication protocols, HTTP/JSON ingestion, and zero-buffer parsing.
-- **[plan.md](./plan.md)**: The master implementation roadmap. Outlines the project philosophy (SOLID/OOP), folder structure, and phased build approach.
-- **[gemini-bridge-strategy.md](./gemini-bridge-strategy.md)**: [DRAFT] Design for the "Session Bridge" that leverages existing Google credentials for free model access.
 
-### 🔌 Protocol & Connection
-- **[claudecode.md](./claudecode.md)**: A detailed breakdown of the Claude Code tool's protocol. Explains the client-server relationship, SSE event types, and tool-calling mechanics.
+### 📅 Planning & Strategy (Located in `/planning`)
+- **[plan.md](../planning/plan.md)**: The master implementation roadmap. Outlines the project philosophy (SOLID/OOP), folder structure, and phased build approach.
+- **[gemini-bridge-strategy.md](../planning/gemini-bridge-strategy.md)**: [DRAFT] Design for the "Session Bridge" that leverages existing Google credentials for free model access.
+
+### 🔌 Protocol & Connection Research (Located in `/research`)
+- **[claudecode.md](../research/claudecode.md)**: A detailed breakdown of the Claude Code tool's protocol. Explains the client-server relationship, SSE event types, and tool-calling mechanics.
 
 ### ⚙️ Binary Converter Engine (Core Logic)
 Located in the `binary-converter-engine/` subfolder, these files define the heart of the proxy:
