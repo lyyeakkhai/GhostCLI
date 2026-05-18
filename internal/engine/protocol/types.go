@@ -6,6 +6,9 @@ type UnifiedChatRequest struct {
 	System      string
 	Messages    []Message
 	Temperature float32
+	// TopP is the nucleus-sampling probability mass (0.0–1.0).
+	// A value of 0 means the field was not set by the caller.
+	TopP        float32
 	MaxTokens   int
 	Tools       []Tool
 	Stream      bool
@@ -27,6 +30,9 @@ type Tool struct {
 // UnifiedStreamEvent represents a normalized streaming event from any provider.
 type UnifiedStreamEvent struct {
 	Type         EventType
+	// Model is the upstream model identifier, populated on EventStart events.
+	// Downstream formatters should use this value when emitting model fields.
+	Model        string
 	Content      string
 	Thinking     string
 	ToolCalls    []ToolCall

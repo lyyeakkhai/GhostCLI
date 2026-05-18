@@ -89,6 +89,7 @@ func (p *AnthropicInParser) Parse(r io.Reader) (*protocol.UnifiedChatRequest, er
 		Model:       anthropicReq.Model,
 		MaxTokens:   anthropicReq.MaxTokens,
 		Temperature: anthropicReq.Temperature,
+		TopP:        anthropicReq.TopP,
 		Stream:      anthropicReq.Stream,
 	}
 	
