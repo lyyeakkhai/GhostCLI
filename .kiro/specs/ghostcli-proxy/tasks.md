@@ -34,7 +34,7 @@ This implementation plan breaks down the GhostCLI proxy server into discrete cod
     - Implement validation error handling and reporting
     - _Requirements: 12_
 
-- [-] 3. Implement translation engine core
+- [x] 3. Implement translation engine core
   - [x] 3.1 Create AnthropicIn parser
     - Implement AnthropicInParser struct in `internal/engine/translator/anthropic_in.go`
     - Add streaming JSON decoder for incoming Anthropic requests
@@ -51,27 +51,27 @@ This implementation plan breaks down the GhostCLI proxy server into discrete cod
     - Implement message_start, content_block_delta, and message_stop event generation
     - _Requirements: 5, 15_
   
-  - [ ] 3.3 Implement streaming pipeline orchestration
+  - [x] 3.3 Implement streaming pipeline orchestration
     - Create stream orchestration logic in `internal/engine/pipeline/stream.go`
     - Add context propagation and cancellation handling
     - Implement token usage normalization in `internal/engine/pipeline/usage.go`
     - _Requirements: 14, 15, 24_
 
-- [ ] 4. Checkpoint - Ensure translation engine tests pass
+- [x] 4. Checkpoint - Ensure translation engine tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Implement provider interface and registry
-  - [ ] 5.1 Define provider interface
+- [x] 5. Implement provider interface and registry
+  - [x] 5.1 Define provider interface
     - Create Provider interface in `internal/providers/interface.go`
     - Define StreamChat, Name, SupportsTools, SupportsThinking, and MapModel methods
     - _Requirements: 4_
   
-  - [ ] 5.2 Create provider registry
+  - [x] 5.2 Create provider registry
     - Implement thread-safe Registry struct in `internal/providers/registry.go`
     - Add Register, Get, and List methods with mutex protection
     - _Requirements: 3, 27_
   
-  - [ ] 5.3 Implement provider factory
+  - [x] 5.3 Implement provider factory
     - Create Factory struct with dependency injection in `internal/providers/factory.go`
     - Add CreateProvider method with pattern-based routing
     - Implement factory methods for each provider pattern (OpenAI, Anthropic, AWS)
