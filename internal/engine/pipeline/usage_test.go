@@ -645,3 +645,220 @@ func TestUsageNormalizer_Normalize_HandlesSlowProducer(t *testing.T) {
 		t.Errorf("expected 5 events, got %d", len(events))
 	}
 }
+
+// ---- UsageNormalizer.Wrap tests ----
+
+func TestUsageNormalizer_Wrap_PropagatesLastUsage(t *testing.T) {
+	logger := slog.Default()
+	n := NewUsageNormalizer(logger)
+
+	src := make(chan protocol.UnifiedStreamEvent, 3)
+	src <- protocol.UnifiedStreamEvent{
+		Type:  protocol.EventStart,
+		Usage: &protocol.Usage{PromptTokens: 20},
+	}
+	// Next event has no usage – normalizer should inject last known.
+	src <- protocol.UnifiedStreamEvent{
+		Type:    protocol.EventToken,
+		Content: "hi",
+	}
+	src <- protocol.UnifiedStreamEvent{
+		Type:         protocol.EventStop,
+		FinishReason: protocol.FinishReasonStop,
+		Usage:        &protocol.Usage{PromptTokens: 20, CompletionTokens: 3},
+	}
+	close(src)
+
+	out := n.Wrap(context.Background(), src)
+
+	var received []protocol.UnifiedStreamEvent
+	for e := range out {
+		received = append(received, e)
+	}
+
+	if len(received) != 3 {
+		t.Fatalf("expected 3 events, got %d", len(received))
+	}
+
+	// Event 0 keeps its own usage.
+	if received[0].Usage == nil || received[0].Usage.PromptTokens != 20 {
+		t.Errorf("event[0]: unexpected usage %v", received[0].Usage)
+	}
+
+	// Event 1 had no usage – should now carry {PromptTokens:20}.
+	if received[1].Usage == nil {
+		t.Fatal("event[1]: expected non-nil Usage after normalization")
+	}
+	if received[1].Usage.PromptTokens != 20 {
+		t.Errorf("event[1]: expected PromptTokens=20, got %d", received[1].Usage.PromptTokens)
+	}
+
+	// Event 2 carries its own final usage – should be preserved.
+	if received[2].Usage == nil || received[2].Usage.CompletionTokens != 3 {
+		t.Errorf("event[2]: unexpected usage %v", received[2].Usage)
+	}
+}
+
+func TestUsageNormalizer_Wrap_NoUsageAtAll(t *testing.T) {
+	// When the provider never provides usage, events without it are forwarded
+	// with nil Usage (nothing to inject).
+	logger := slog.Default()
+	n := NewUsageNormalizer(logger)
+
+	src := make(chan protocol.UnifiedStreamEvent, 2)
+	src <- protocol.UnifiedStreamEvent{Type: protocol.EventToken, Content: "a"}
+	src <- protocol.UnifiedStreamEvent{Type: protocol.EventToken, Content: "b"}
+	close(src)
+
+	out := n.Wrap(context.Background(), src)
+
+	var received []protocol.UnifiedStreamEvent
+	for e := range out {
+		received = append(received, e)
+	}
+
+	if len(received) != 2 {
+		t.Fatalf("expected 2 events, got %d", len(received))
+	}
+	// No usage was ever seen, so events remain nil.
+	for i, e := range received {
+		if e.Usage != nil {
+			t.Errorf("event[%d]: expected nil Usage, got %v", i, e.Usage)
+		}
+	}
+}
+
+func TestUsageNormalizer_Wrap_ContextCancellation(t *testing.T) {
+	logger := slog.Default()
+	n := NewUsageNormalizer(logger)
+
+	src := make(chan protocol.UnifiedStreamEvent) // unbuffered – never sends
+
+	ctx, cancel := context.WithCancel(context.Background())
+	out := n.Wrap(ctx, src)
+
+	// Cancel before the goroutine can read anything.
+	cancel()
+
+	// The output channel must close within a reasonable timeout.
+	select {
+	case _, ok := <-out:
+		if ok {
+			t.Error("expected output channel to be closed")
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Error("output channel did not close after context cancellation")
+	}
+}
+
+func TestUsageNormalizer_Wrap_ClosesOutputWhenSrcCloses(t *testing.T) {
+	logger := slog.Default()
+	n := NewUsageNormalizer(logger)
+
+	src := make(chan protocol.UnifiedStreamEvent)
+	close(src) // close immediately
+
+	out := n.Wrap(context.Background(), src)
+
+	select {
+	case _, ok := <-out:
+		if ok {
+			t.Error("expected closed channel")
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Error("output channel did not close when src was closed")
+	}
+}
+
+func TestUsageNormalizer_Wrap_IsolatesSnapshots(t *testing.T) {
+	// Mutating the original Usage struct after sending should not affect
+	// the injected snapshot in subsequent events.
+	logger := slog.Default()
+	n := NewUsageNormalizer(logger)
+
+	original := &protocol.Usage{PromptTokens: 10, CompletionTokens: 1}
+	src := make(chan protocol.UnifiedStreamEvent, 2)
+	src <- protocol.UnifiedStreamEvent{Type: protocol.EventStart, Usage: original}
+	src <- protocol.UnifiedStreamEvent{Type: protocol.EventToken, Content: "x"} // no usage
+	close(src)
+
+	out := n.Wrap(context.Background(), src)
+
+	var received []protocol.UnifiedStreamEvent
+	for e := range out {
+		received = append(received, e)
+	}
+
+	// Mutate original after the fact.
+	original.PromptTokens = 999
+
+	if received[1].Usage == nil || received[1].Usage.PromptTokens == 999 {
+		t.Errorf("normalizer did not isolate the usage snapshot: %v", received[1].Usage)
+	}
+}
+
+// ---- NormalizeUsage helper tests ----
+
+func TestNormalizeUsage_InjectsWhenNil(t *testing.T) {
+	last := &protocol.Usage{PromptTokens: 5, CompletionTokens: 2}
+	event := protocol.UnifiedStreamEvent{Type: protocol.EventToken}
+
+	result := NormalizeUsage(event, last)
+	if result.Usage == nil {
+		t.Fatal("expected Usage to be injected")
+	}
+	if result.Usage.PromptTokens != 5 || result.Usage.CompletionTokens != 2 {
+		t.Errorf("unexpected injected usage: %v", result.Usage)
+	}
+}
+
+func TestNormalizeUsage_KeepsExistingUsage(t *testing.T) {
+	last := &protocol.Usage{PromptTokens: 5}
+	event := protocol.UnifiedStreamEvent{
+		Type:  protocol.EventToken,
+		Usage: &protocol.Usage{PromptTokens: 7, CompletionTokens: 3},
+	}
+
+	result := NormalizeUsage(event, last)
+	// Original usage should be preserved.
+	if result.Usage.PromptTokens != 7 || result.Usage.CompletionTokens != 3 {
+		t.Errorf("existing usage was overwritten: %v", result.Usage)
+	}
+}
+
+func TestNormalizeUsage_NoLastUsage(t *testing.T) {
+	event := protocol.UnifiedStreamEvent{Type: protocol.EventToken}
+	result := NormalizeUsage(event, nil)
+	if result.Usage != nil {
+		t.Errorf("expected Usage to remain nil, got %v", result.Usage)
+	}
+}
+
+// ---- EstimateTokens tests ----
+
+func TestEstimateTokens_Empty(t *testing.T) {
+	if got := EstimateTokens(""); got != 0 {
+		t.Errorf("expected 0 for empty string, got %d", got)
+	}
+}
+
+func TestEstimateTokens_FourCharsOneToken(t *testing.T) {
+	if got := EstimateTokens("abcd"); got != 1 {
+		t.Errorf("expected 1 token for 4 chars, got %d", got)
+	}
+}
+
+func TestEstimateTokens_CeilingBehavior(t *testing.T) {
+	// 5 chars → ceil(5/4) = 2
+	if got := EstimateTokens("abcde"); got != 2 {
+		t.Errorf("expected 2 tokens for 5 chars, got %d", got)
+	}
+}
+
+func TestEstimateTokens_LargerText(t *testing.T) {
+	text := "The quick brown fox jumps over the lazy dog"
+	expected := (len(text) + 3) / 4
+	if got := EstimateTokens(text); got != expected {
+		t.Errorf("expected %d tokens, got %d", expected, got)
+	}
+}

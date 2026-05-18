@@ -12,6 +12,7 @@ import (
 
 // UsageNormalizer ensures consistent token usage information across all streaming events.
 // It tracks token counts and injects them into events that lack usage data.
+// Requirement 15: Token Usage Normalization.
 type UsageNormalizer struct {
 	logger *slog.Logger
 }
@@ -108,6 +109,44 @@ func (n *UsageNormalizer) Normalize(
 	return normalizedChan
 }
 
+// Wrap starts a goroutine that reads from src, attaches the last known
+// usage to every event that lacks its own, and forwards enriched events.
+// Unlike Normalize, Wrap does not estimate tokens or update totals —
+// it simply propagates the last seen Usage pointer (as a snapshot).
+func (n *UsageNormalizer) Wrap(
+	ctx context.Context,
+	src <-chan protocol.UnifiedStreamEvent,
+) <-chan protocol.UnifiedStreamEvent {
+	out := make(chan protocol.UnifiedStreamEvent, cap(src)+1)
+	go func() {
+		defer close(out)
+		var lastUsage *protocol.Usage
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case event, ok := <-src:
+				if !ok {
+					return
+				}
+				if event.Usage != nil {
+					snapshot := *event.Usage
+					lastUsage = &snapshot
+				} else if lastUsage != nil {
+					snapshot := *lastUsage
+					event.Usage = &snapshot
+				}
+				select {
+				case out <- event:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+	return out
+}
+
 // estimateTokenCount provides a rough estimate of token count based on content length.
 // This is a simple heuristic: approximately 4 characters per token for English text.
 // This is used as a fallback when providers don't report token usage.
@@ -127,6 +166,15 @@ func estimateTokenCount(content string) int {
 	}
 
 	return tokenCount
+}
+
+// EstimateTokens gives a rough token estimate using 4-chars-per-token heuristic.
+// This is a package-level alias for the internal estimateTokenCount helper.
+func EstimateTokens(text string) int {
+	if len(text) == 0 {
+		return 0
+	}
+	return (len(text) + 3) / 4
 }
 
 // EstimateTokensForRequest estimates the token count for a complete request.
@@ -151,12 +199,21 @@ func EstimateTokensForRequest(req *protocol.UnifiedChatRequest) int {
 		// Tool name and description
 		totalTokens += estimateTokenCount(tool.Name)
 		totalTokens += estimateTokenCount(tool.Description)
-		
+
 		// Input schema (rough estimate: 50 tokens per tool schema)
 		totalTokens += 50
 	}
 
 	return totalTokens
+}
+
+// NormalizeUsage copies lastUsage into event.Usage when event.Usage is nil.
+func NormalizeUsage(event protocol.UnifiedStreamEvent, lastUsage *protocol.Usage) protocol.UnifiedStreamEvent {
+	if event.Usage == nil && lastUsage != nil {
+		snapshot := *lastUsage
+		event.Usage = &snapshot
+	}
+	return event
 }
 
 // NormalizeUsageInPlace updates a UnifiedStreamEvent with normalized usage data.
