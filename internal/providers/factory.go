@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"ghostcli/internal/config"
+	"ghostcli/internal/providers/base"
 )
 
 // Factory creates provider instances with dependency injection.
@@ -80,9 +81,14 @@ func (f *Factory) createOpenAICompatProvider(name string, cfg *config.ProviderCo
 // This pattern is used by providers like Anthropic, OpenRouter, and Kiro Gateway
 // that implement the Anthropic Messages API format natively.
 func (f *Factory) createAnthropicNativeProvider(name string, cfg *config.ProviderConfig) (Provider, error) {
-	// TODO: Implement Anthropic-native provider creation
-	// This will be implemented in task 6.2
-	return nil, fmt.Errorf("Anthropic-native provider creation not yet implemented")
+	adapter := base.NewAnthropicAdapter(base.AnthropicConfig{
+		Name:     name,
+		BaseURL:  cfg.BaseURL,
+		APIKey:   cfg.APIKey,
+		ModelMap: cfg.ModelMap,
+		Logger:   f.logger,
+	})
+	return adapter, nil
 }
 
 // createAWSEventStreamProvider creates a provider adapter for AWS EventStream APIs.
