@@ -1,0 +1,71 @@
+# GhostCLI Configuration Example
+# Copy this file to ~/.config/ghost/config.yaml or specify with --config flag
+
+# Server configuration
+port: 3200
+host: "127.0.0.1"
+timeout: 300  # Request timeout in seconds
+
+# Active provider (must match a key in the providers map)
+active_provider: "deepseek"
+
+# CORS configuration
+cors_origin: "*"  # Use "*" for all origins or specify a specific origin
+
+# Logging
+verbose: false  # Set to true for debug logging
+
+# Provider configurations
+providers:
+  deepseek:
+    name: "deepseek"
+    pattern: "openai"  # Uses OpenAI-compatible adapter
+    base_url: "https://api.deepseek.com"
+    api_key: "sk-your-deepseek-api-key-here"
+    model_map:
+      claude-3-5-sonnet: "deepseek-chat"
+      claude-3-opus: "deepseek-chat"
+
+  kimi:
+    name: "kimi"
+    pattern: "openai"  # Uses OpenAI-compatible adapter
+    base_url: "https://api.moonshot.cn"
+    api_key: "sk-your-kimi-api-key-here"
+    model_map:
+      claude-3-5-sonnet: "moonshot-v1-128k"
+      claude-3-opus: "moonshot-v1-128k"
+
+  openai:
+    name: "openai"
+    pattern: "openai"  # Uses OpenAI-compatible adapter
+    base_url: "https://api.openai.com"
+    api_key: "sk-your-openai-api-key-here"
+    model_map:
+      claude-3-5-sonnet: "gpt-4o"
+      claude-3-opus: "gpt-4"
+
+  kiro:
+    name: "kiro"
+    pattern: "aws"  # Uses AWS EventStream adapter
+    base_url: "https://api.kiro.ai"
+    api_key: "your-kiro-api-key-here"
+    model_map:
+      claude-3-5-sonnet: "kiro-chat"
+
+# Environment Variable Overrides:
+# You can override any configuration value using environment variables:
+#
+# GHOST_PORT=8080
+# GHOST_HOST=0.0.0.0
+# GHOST_TIMEOUT=600
+# GHOST_PROVIDER=deepseek
+# GHOST_CORS_ORIGIN=https://example.com
+# GHOST_VERBOSE=true
+#
+# Provider-specific API keys:
+# DEEPSEEK_API_KEY=sk-...
+# KIMI_API_KEY=sk-...
+# OPENAI_API_KEY=sk-...
+# KIRO_API_KEY=...
+#
+# CLI flags have the highest priority and will override both file and environment variables.
