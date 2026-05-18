@@ -3,6 +3,7 @@ package config
 import (
 	"log/slog"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/zalando/go-keyring"
@@ -12,7 +13,12 @@ func TestSecureStorage(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	
 	// Create storage instance
-	storage, err := NewSecureStorage(logger)
+	storage, err := NewSecureStorage(logger, func() bool { return true }, func() (EncryptedFileProvider, error) {
+		return &EncryptedFile{
+			path: filepath.Join(t.TempDir(), "test_secrets.db"),
+			key:  []byte("test-key-32-bytes-long-123456789"),
+		}, nil
+	})
 	if err != nil {
 		t.Fatalf("Failed to create SecureStorage: %v", err)
 	}
@@ -143,7 +149,12 @@ func TestSecureStorageFallback(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	
 	// Create storage instance
-	storage, err := NewSecureStorage(logger)
+	storage, err := NewSecureStorage(logger, func() bool { return true }, func() (EncryptedFileProvider, error) {
+		return &EncryptedFile{
+			path: filepath.Join(t.TempDir(), "test_secrets.db"),
+			key:  []byte("test-key-32-bytes-long-123456789"),
+		}, nil
+	})
 	if err != nil {
 		t.Fatalf("Failed to create SecureStorage: %v", err)
 	}

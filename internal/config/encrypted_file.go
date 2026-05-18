@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 
 	"github.com/denisbrodbeck/machineid"
 )
@@ -18,6 +19,7 @@ import (
 // EncryptedFile provides encrypted local file storage for API keys.
 // The encryption key is derived from the machine hardware UUID.
 type EncryptedFile struct {
+	mu   sync.RWMutex
 	path string
 	key  []byte
 }
@@ -53,6 +55,9 @@ func NewEncryptedFile() (*EncryptedFile, error) {
 
 // Set stores an API key for a provider in the encrypted file.
 func (e *EncryptedFile) Set(provider, apiKey string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	// Load existing data
 	data, err := e.load()
 	if err != nil && !os.IsNotExist(err) {
@@ -96,6 +101,9 @@ func (e *EncryptedFile) Get(provider string) (string, error) {
 
 // Delete removes an API key for a provider from the encrypted file.
 func (e *EncryptedFile) Delete(provider string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	// Load existing data
 	data, err := e.load()
 	if err != nil {
@@ -153,9 +161,29 @@ func (e *EncryptedFile) save(data map[string]string) error {
 		return fmt.Errorf("failed to encrypt data: %w", err)
 	}
 	
-	// Write to file with restricted permissions
-	if err := os.WriteFile(e.path, ciphertext, 0600); err != nil {
-		return fmt.Errorf("failed to write file: %w", err)
+	// Write to file with restricted permissions using atomic write
+	tempPath := filepath.Join(filepath.Dir(e.path), ".tmp-"+filepath.Base(e.path))
+	file, err := os.OpenFile(tempPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return fmt.Errorf("failed to open temp file: %w", err)
+	}
+	if _, err := file.Write(ciphertext); err != nil {
+		file.Close()
+		os.Remove(tempPath)
+		return fmt.Errorf("failed to write temp file: %w", err)
+	}
+	if err := file.Sync(); err != nil {
+		file.Close()
+		os.Remove(tempPath)
+		return fmt.Errorf("failed to sync temp file: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		os.Remove(tempPath)
+		return fmt.Errorf("failed to close temp file: %w", err)
+	}
+	if err := os.Rename(tempPath, e.path); err != nil {
+		os.Remove(tempPath)
+		return fmt.Errorf("failed to rename temp file: %w", err)
 	}
 	
 	return nil

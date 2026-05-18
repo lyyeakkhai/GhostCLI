@@ -12,25 +12,42 @@ const (
 	ServiceName = "ghostcli"
 )
 
+// EncryptedFileProvider defines the interface for interacting with an encrypted file.
+type EncryptedFileProvider interface {
+	Get(provider string) (string, error)
+	Set(provider, apiKey string) error
+	Delete(provider string) error
+}
+
+// KeyringProbe is a function that checks if the OS keyring is available.
+type KeyringProbe func() bool
+
+// EncryptedFileFactory is a function that returns an EncryptedFileProvider.
+type EncryptedFileFactory func() (EncryptedFileProvider, error)
+
 // SecureStorage provides secure API key storage using OS keyring with encrypted file fallback.
 type SecureStorage struct {
 	keyringAvailable bool
-	encFile          *EncryptedFile
+	encFile          EncryptedFileProvider
 	logger           *slog.Logger
 }
 
 // NewSecureStorage creates a new SecureStorage instance.
 // It attempts to use the OS keyring first, falling back to encrypted file storage if unavailable.
-func NewSecureStorage(logger *slog.Logger) (*SecureStorage, error) {
+func NewSecureStorage(logger *slog.Logger, probe KeyringProbe, encFactory EncryptedFileFactory) (*SecureStorage, error) {
+	if logger == nil {
+		logger = slog.Default()
+	}
+
 	// Test if OS keyring is available by attempting a test operation
-	keyringAvailable := testKeyringAvailability()
+	keyringAvailable := probe()
 	
 	if !keyringAvailable {
 		logger.Warn("OS keyring unavailable, using encrypted file fallback")
 	}
 	
 	// Initialize encrypted file fallback
-	encFile, err := NewEncryptedFile()
+	encFile, err := encFactory()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize encrypted file storage: %w", err)
 	}
@@ -74,8 +91,14 @@ func (s *SecureStorage) GetAPIKey(provider string) (string, error) {
 			s.logger.Debug("API key retrieved from OS keyring", "provider", provider)
 			return apiKey, nil
 		}
+		
 		// If not found in keyring, try encrypted file
-		s.logger.Debug("API key not found in keyring, trying encrypted file", "provider", provider)
+		if err == keyring.ErrNotFound {
+			s.logger.Debug("API key not found in keyring, trying encrypted file", "provider", provider)
+		} else {
+			s.logger.Error("Error retrieving API key from keyring", "provider", provider, "error", err)
+			return "", fmt.Errorf("keyring access failed for provider '%s': %w", provider, err)
+		}
 	}
 	
 	// Fallback to encrypted file

@@ -24,11 +24,14 @@ type APIKeyValidator struct {
 }
 
 // NewAPIKeyValidator creates a new API key validator.
-func NewAPIKeyValidator() *APIKeyValidator {
-	return &APIKeyValidator{
-		client: &http.Client{
+func NewAPIKeyValidator(client *http.Client) *APIKeyValidator {
+	if client == nil {
+		client = &http.Client{
 			Timeout: 10 * time.Second,
-		},
+		}
+	}
+	return &APIKeyValidator{
+		client: client,
 	}
 }
 
@@ -260,7 +263,7 @@ func (v *APIKeyValidator) testAPIKey(ctx context.Context, apiKey string, config 
 		body, _ := io.ReadAll(resp.Body)
 		// For some providers, a 400 with specific error might still indicate the key is valid
 		// but the test payload was rejected. We'll consider this as potentially valid.
-		if config.TestMethod == "POST" {
+		if config.TestMethod == "POST" && resp.StatusCode == 400 {
 			// If it's a POST request and we get a 400, the key might be valid but payload invalid
 			result.Valid = true
 			result.ErrorMessage = fmt.Sprintf("API key appears valid, but test request returned HTTP %d (this is expected for minimal test payloads)", resp.StatusCode)

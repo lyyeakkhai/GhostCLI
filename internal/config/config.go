@@ -141,8 +141,12 @@ func (c *Config) mergeFromEnv() {
 	}
 
 	// Logging
-	if verbose := os.Getenv("GHOST_VERBOSE"); verbose == "true" || verbose == "1" {
-		c.Verbose = true
+	if verbose, ok := os.LookupEnv("GHOST_VERBOSE"); ok {
+		if verbose == "true" || verbose == "1" {
+			c.Verbose = true
+		} else if verbose == "false" || verbose == "0" {
+			c.Verbose = false
+		}
 	}
 
 	// Provider-specific API keys (e.g., DEEPSEEK_API_KEY, OPENAI_API_KEY)

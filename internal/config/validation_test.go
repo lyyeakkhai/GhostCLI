@@ -10,7 +10,7 @@ import (
 )
 
 func TestValidateFormat(t *testing.T) {
-	validator := NewAPIKeyValidator()
+	validator := NewAPIKeyValidator(nil)
 
 	tests := []struct {
 		name      string
@@ -225,7 +225,7 @@ func TestValidateAPIKey_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	validator := NewAPIKeyValidator()
+	validator := NewAPIKeyValidator(nil)
 	config := &ProviderValidationConfig{
 		Name:         "test",
 		Pattern:      "openai",
@@ -254,7 +254,7 @@ func TestValidateAPIKey_Success(t *testing.T) {
 }
 
 func TestValidateAPIKey_InvalidFormat(t *testing.T) {
-	validator := NewAPIKeyValidator()
+	validator := NewAPIKeyValidator(nil)
 	config := &ProviderValidationConfig{
 		Name:         "test",
 		Pattern:      "openai",
@@ -292,7 +292,7 @@ func TestValidateAPIKey_Unauthorized(t *testing.T) {
 	}))
 	defer server.Close()
 
-	validator := NewAPIKeyValidator()
+	validator := NewAPIKeyValidator(nil)
 	config := &ProviderValidationConfig{
 		Name:         "test",
 		Pattern:      "openai",
@@ -330,7 +330,7 @@ func TestValidateAPIKey_ServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	validator := NewAPIKeyValidator()
+	validator := NewAPIKeyValidator(nil)
 	config := &ProviderValidationConfig{
 		Name:         "test",
 		Pattern:      "openai",
@@ -367,7 +367,7 @@ func TestValidateAPIKey_Timeout(t *testing.T) {
 	}))
 	defer server.Close()
 
-	validator := NewAPIKeyValidator()
+	validator := NewAPIKeyValidator(nil)
 	validator.client.Timeout = 100 * time.Millisecond
 
 	config := &ProviderValidationConfig{
@@ -421,7 +421,7 @@ func TestValidateAPIKey_POSTRequest(t *testing.T) {
 	}))
 	defer server.Close()
 
-	validator := NewAPIKeyValidator()
+	validator := NewAPIKeyValidator(nil)
 	config := &ProviderValidationConfig{
 		Name:         "anthropic",
 		Pattern:      "anthropic",
@@ -454,6 +454,36 @@ func TestValidateAPIKey_POSTRequest(t *testing.T) {
 	}
 }
 
+func TestValidateAPIKey_POSTRequest_Non400(t *testing.T) {
+	// Create mock server for POST requests returning 404
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	validator := NewAPIKeyValidator(nil)
+	config := &ProviderValidationConfig{
+		Name:         "anthropic",
+		Pattern:      "anthropic",
+		KeyRegex:     AnthropicKeyRegex,
+		TestEndpoint: server.URL + "/v1/messages",
+		TestMethod:   "POST",
+		AuthHeader:   "x-api-key",
+	}
+
+	ctx := context.Background()
+	result := validator.ValidateAPIKey(ctx, "sk-ant-api03-abcdefghijklmnopqrstuvwxyz", config)
+
+	// For POST requests with 404, we consider the key invalid
+	if result.Valid {
+		t.Error("ValidateAPIKey() should consider 404 on POST as invalid")
+	}
+}
+
 func TestValidateProviderConfig(t *testing.T) {
 	// Create mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -464,7 +494,7 @@ func TestValidateProviderConfig(t *testing.T) {
 	}))
 	defer server.Close()
 
-	validator := NewAPIKeyValidator()
+	validator := NewAPIKeyValidator(nil)
 	ctx := context.Background()
 
 	err := validator.ValidateProviderConfig(ctx, "deepseek", "openai", server.URL, "sk-1234567890abcdef1234567890abcdef")
@@ -480,7 +510,7 @@ func TestValidateProviderConfig_InvalidKey(t *testing.T) {
 	}))
 	defer server.Close()
 
-	validator := NewAPIKeyValidator()
+	validator := NewAPIKeyValidator(nil)
 	ctx := context.Background()
 
 	err := validator.ValidateProviderConfig(ctx, "deepseek", "openai", server.URL, "sk-1234567890abcdef1234567890abcdef")

@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -310,6 +311,9 @@ func TestFilePermissions(t *testing.T) {
 	// On Unix-like systems, verify file is only readable/writable by owner (0600)
 	// On Windows, this check may not be as strict
 	if mode.Perm()&0077 != 0 {
+		if runtime.GOOS != "windows" {
+			t.Fatalf("Warning: File permissions are %o, expected 0600 (owner read/write only)", mode.Perm())
+		}
 		t.Logf("Warning: File permissions are %o, expected 0600 (owner read/write only)", mode.Perm())
 		// Don't fail on Windows as permission model is different
 	}
