@@ -77,21 +77,21 @@ This implementation plan breaks down the GhostCLI proxy server into discrete cod
     - Implement factory methods for each provider pattern (OpenAI, Anthropic, AWS)
     - _Requirements: 3, 27_
 
-- [ ] 6. Implement base provider adapters (patterns)
-  - [ ] 6.1 Create OpenAI-compatible base adapter
+- [x] 6. Implement base provider adapters (patterns)
+  - [x] 6.1 Create OpenAI-compatible base adapter
     - Implement OpenAIAdapter in `internal/providers/base/openai_base.go`
     - Add StreamChat method with OpenAI Chat Completions format conversion
     - Implement SSE streaming response parser
     - Add model mapping and configuration support
     - _Requirements: 4, 6, 7, 8, 19_
   
-  - [ ] 6.2 Create Anthropic-native base adapter
+  - [x] 6.2 Create Anthropic-native base adapter
     - Implement AnthropicAdapter in `internal/providers/base/anthropic_base.go`
     - Add passthrough logic with minimal translation
     - Implement Anthropic-specific header handling
     - _Requirements: 4_
   
-  - [ ] 6.3 Create AWS EventStream base adapter
+  - [x] 6.3 Create AWS EventStream base adapter
     - Implement AWSAdapter in `internal/providers/base/aws_base.go`
     - Add binary EventStream protocol decoder
     - Implement AWS-specific request format conversion
