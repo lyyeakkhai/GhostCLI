@@ -34,8 +34,8 @@ This implementation plan breaks down the GhostCLI proxy server into discrete cod
     - Implement validation error handling and reporting
     - _Requirements: 12_
 
-- [ ] 3. Implement translation engine core
-  - [ ] 3.1 Create AnthropicIn parser
+- [-] 3. Implement translation engine core
+  - [x] 3.1 Create AnthropicIn parser
     - Implement AnthropicInParser struct in `internal/engine/translator/anthropic_in.go`
     - Add streaming JSON decoder for incoming Anthropic requests
     - Implement conversion from Anthropic format to UnifiedChatRequest
@@ -43,7 +43,7 @@ This implementation plan breaks down the GhostCLI proxy server into discrete cod
     - Add message and tool conversion logic
     - _Requirements: 2_
   
-  - [ ] 3.2 Create AnthropicOut formatter
+  - [x] 3.2 Create AnthropicOut formatter
     - Implement AnthropicOutFormatter struct in `internal/engine/translator/anthropic_out.go`
     - Add SSE event writing with immediate flushing
     - Implement conversion from UnifiedStreamEvent to Anthropic SSE format
