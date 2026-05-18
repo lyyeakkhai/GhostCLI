@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -527,4 +528,223 @@ func TestStreamOrchestrator_HandleCancellation(t *testing.T) {
 			t.Error("HandleCancellation did not complete in time")
 		}
 	})
+}
+
+// ---- test doubles ----
+
+// fakeProvider implements Provider for testing.
+type fakeProvider struct {
+	events []protocol.UnifiedStreamEvent
+	initErr error
+}
+
+func (f *fakeProvider) StreamChat(
+	ctx context.Context,
+	_ *protocol.UnifiedChatRequest,
+) (<-chan protocol.UnifiedStreamEvent, error) {
+	if f.initErr != nil {
+		return nil, f.initErr
+	}
+	ch := make(chan protocol.UnifiedStreamEvent, len(f.events))
+	for _, e := range f.events {
+		ch <- e
+	}
+	close(ch)
+	return ch, nil
+}
+
+// captureFormatter implements Formatter and captures all received events.
+type captureFormatter struct {
+	received []protocol.UnifiedStreamEvent
+	retErr   error
+}
+
+func (c *captureFormatter) StreamToWriter(
+	ctx context.Context,
+	_ http.ResponseWriter,
+	eventChan <-chan protocol.UnifiedStreamEvent,
+) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case event, ok := <-eventChan:
+			if !ok {
+				return c.retErr
+			}
+			c.received = append(c.received, event)
+		}
+	}
+}
+
+// ---- helpers ----
+
+func makeReq() *protocol.UnifiedChatRequest {
+	return &protocol.UnifiedChatRequest{
+		Model:  "test-model",
+		Stream: true,
+		Messages: []protocol.Message{
+			{Role: protocol.RoleUser, Content: "hello"},
+		},
+	}
+}
+
+func makeLogger() *slog.Logger { return slog.Default() }
+
+// ---- tests ----
+
+func TestStreamPipeline_Execute_BasicFlow(t *testing.T) {
+	events := []protocol.UnifiedStreamEvent{
+		{Type: protocol.EventStart},
+		{Type: protocol.EventToken, Content: "hello"},
+		{Type: protocol.EventStop, FinishReason: protocol.FinishReasonStop},
+	}
+
+	provider := &fakeProvider{events: events}
+	formatter := &captureFormatter{}
+	p := NewStreamPipeline(provider, formatter, makeLogger(), false)
+
+	w := httptest.NewRecorder()
+	err := p.Execute(context.Background(), w, makeReq())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(formatter.received) != len(events) {
+		t.Errorf("expected %d events forwarded, got %d", len(events), len(formatter.received))
+	}
+}
+
+func TestStreamPipeline_Execute_ProviderInitError(t *testing.T) {
+	wantErr := errors.New("provider unavailable")
+	provider := &fakeProvider{initErr: wantErr}
+	formatter := &captureFormatter{}
+	p := NewStreamPipeline(provider, formatter, makeLogger(), false)
+
+	w := httptest.NewRecorder()
+	err := p.Execute(context.Background(), w, makeReq())
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !errors.Is(err, wantErr) {
+		t.Errorf("expected %v, got %v", wantErr, err)
+	}
+}
+
+func TestStreamPipeline_Execute_ContextCancellation(t *testing.T) {
+	// Provider returns no events – formatter will block on ctx.
+	provider := &fakeProvider{events: nil}
+	formatter := &captureFormatter{}
+	p := NewStreamPipeline(provider, formatter, makeLogger(), false)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	// Cancel before Execute so the formatter immediately returns ctx.Err().
+	cancel()
+
+	w := httptest.NewRecorder()
+	err := p.Execute(ctx, w, makeReq())
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("expected context.Canceled, got %v", err)
+	}
+}
+
+func TestStreamPipeline_Execute_WithNormalization(t *testing.T) {
+	// Only the start event carries usage; subsequent events should be enriched.
+	events := []protocol.UnifiedStreamEvent{
+		{
+			Type: protocol.EventStart,
+			Usage: &protocol.Usage{PromptTokens: 10, CompletionTokens: 0},
+		},
+		{Type: protocol.EventToken, Content: "word"},
+		{Type: protocol.EventStop, FinishReason: protocol.FinishReasonStop},
+	}
+
+	provider := &fakeProvider{events: events}
+	formatter := &captureFormatter{}
+	p := NewStreamPipeline(provider, formatter, makeLogger(), true /* normalizeUsage */)
+
+	w := httptest.NewRecorder()
+	if err := p.Execute(context.Background(), w, makeReq()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Every forwarded event must have non-nil Usage after normalization.
+	for i, ev := range formatter.received {
+		if ev.Usage == nil {
+			t.Errorf("event[%d] (type=%s): expected non-nil Usage after normalization", i, ev.Type)
+		}
+	}
+}
+
+func TestStreamPipeline_Execute_NormalizationPreservesOriginalUsage(t *testing.T) {
+	// Ensure the normalizer does not overwrite usage that the provider supplied.
+	events := []protocol.UnifiedStreamEvent{
+		{Type: protocol.EventStart, Usage: &protocol.Usage{PromptTokens: 5}},
+		{Type: protocol.EventToken, Content: "x", Usage: &protocol.Usage{PromptTokens: 5, CompletionTokens: 2}},
+		{Type: protocol.EventStop, FinishReason: protocol.FinishReasonStop, Usage: &protocol.Usage{PromptTokens: 5, CompletionTokens: 7}},
+	}
+
+	provider := &fakeProvider{events: events}
+	formatter := &captureFormatter{}
+	p := NewStreamPipeline(provider, formatter, makeLogger(), true)
+
+	w := httptest.NewRecorder()
+	if err := p.Execute(context.Background(), w, makeReq()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// The stop event's completion tokens should be preserved (7), not replaced.
+	last := formatter.received[len(formatter.received)-1]
+	if last.Usage == nil || last.Usage.CompletionTokens != 7 {
+		t.Errorf("expected last event CompletionTokens=7, got %v", last.Usage)
+	}
+}
+
+func TestStreamPipeline_Execute_FormatterError(t *testing.T) {
+	wantErr := errors.New("write error")
+	provider := &fakeProvider{events: []protocol.UnifiedStreamEvent{
+		{Type: protocol.EventStart},
+	}}
+	formatter := &captureFormatter{retErr: wantErr}
+	p := NewStreamPipeline(provider, formatter, makeLogger(), false)
+
+	w := httptest.NewRecorder()
+	err := p.Execute(context.Background(), w, makeReq())
+	if !errors.Is(err, wantErr) {
+		t.Errorf("expected %v, got %v", wantErr, err)
+	}
+}
+
+func TestStreamPipeline_Execute_CancellationDuringStream(t *testing.T) {
+	// Provider blocks until context is cancelled, simulating a slow upstream.
+	blockingProvider := &blockProvider{}
+	formatter := &captureFormatter{}
+	p := NewStreamPipeline(blockingProvider, formatter, makeLogger(), false)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	w := httptest.NewRecorder()
+	err := p.Execute(ctx, w, makeReq())
+	if err == nil {
+		t.Fatal("expected timeout/cancel error, got nil")
+	}
+}
+
+// blockProvider is a Provider whose StreamChat returns a channel that never
+// receives any events, allowing the context timeout to fire.
+type blockProvider struct{}
+
+func (b *blockProvider) StreamChat(
+	ctx context.Context,
+	_ *protocol.UnifiedChatRequest,
+) (<-chan protocol.UnifiedStreamEvent, error) {
+	ch := make(chan protocol.UnifiedStreamEvent)
+	// Goroutine closes the channel when the context is done so callers
+	// (formatter) don't leak goroutines.
+	go func() {
+		<-ctx.Done()
+		close(ch)
+	}()
+	return ch, nil
 }

@@ -3,6 +3,7 @@ package translator
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http/httptest"
@@ -200,17 +201,108 @@ func TestAnthropicOutFormatter_StreamToWriter_WithThinking(t *testing.T) {
 	body := w.Body.String()
 	events := parseSSEEvents(body)
 
-	// Verify thinking content is present
-	foundThinking := false
-	for _, event := range events {
-		if strings.Contains(event["data"], "thinking") {
-			foundThinking = true
-			break
+	// Helper to decode an SSE event's data payload into a generic map.
+	decodePayload := func(e map[string]string) map[string]interface{} {
+		var m map[string]interface{}
+		if err := json.Unmarshal([]byte(e["data"]), &m); err != nil {
+			t.Fatalf("failed to decode event payload: %v (data=%q)", err, e["data"])
+		}
+		return m
+	}
+
+	// Helper to read an index field from a decoded payload.
+	getIndex := func(m map[string]interface{}) int {
+		v, ok := m["index"]
+		if !ok {
+			t.Fatal("missing 'index' field in event")
+		}
+		f, ok := v.(float64)
+		if !ok {
+			t.Fatalf("'index' is not a number: %T", v)
+		}
+		return int(f)
+	}
+
+	// Expected ordered sequence of SSE event types.
+	// Sequence: message_start, content_block_start (thinking@0),
+	//           content_block_delta (thinking@0),
+	//           content_block_start (text@1), content_block_delta (text@1),
+	//           content_block_stop@0, content_block_stop@1,
+	//           message_delta, message_stop
+	expectedTypes := []string{
+		"message_start",
+		"content_block_start",  // thinking block at index 0
+		"content_block_delta",  // thinking delta at index 0
+		"content_block_start",  // text block at index 1
+		"content_block_delta",  // text delta at index 1
+		"content_block_stop",   // close index 0
+		"content_block_stop",   // close index 1
+		"message_delta",
+		"message_stop",
+	}
+
+	if len(events) != len(expectedTypes) {
+		t.Fatalf("expected %d events, got %d: %v", len(expectedTypes), len(events), events)
+	}
+
+	for i, expType := range expectedTypes {
+		if events[i]["event"] != expType {
+			t.Errorf("event[%d]: expected type %q, got %q", i, expType, events[i]["event"])
 		}
 	}
 
-	if !foundThinking {
-		t.Error("expected to find thinking content in events")
+	// content_block_start thinking → index 0 with type "thinking"
+	thinkingStart := decodePayload(events[1])
+	if idx := getIndex(thinkingStart); idx != 0 {
+		t.Errorf("thinking content_block_start: expected index 0, got %d", idx)
+	}
+	if cb, ok := thinkingStart["content_block"].(map[string]interface{}); ok {
+		if cb["type"] != "thinking" {
+			t.Errorf("thinking content_block type: expected 'thinking', got %q", cb["type"])
+		}
+	} else {
+		t.Error("thinking content_block_start missing 'content_block' field")
+	}
+
+	// content_block_delta thinking → index 0
+	thinkingDelta := decodePayload(events[2])
+	if idx := getIndex(thinkingDelta); idx != 0 {
+		t.Errorf("thinking content_block_delta: expected index 0, got %d", idx)
+	}
+	if d, ok := thinkingDelta["delta"].(map[string]interface{}); ok {
+		if d["type"] != "thinking_delta" {
+			t.Errorf("thinking delta type: expected 'thinking_delta', got %q", d["type"])
+		}
+	}
+
+	// content_block_start text → index 1 with type "text"
+	textStart := decodePayload(events[3])
+	if idx := getIndex(textStart); idx != 1 {
+		t.Errorf("text content_block_start: expected index 1, got %d", idx)
+	}
+	if cb, ok := textStart["content_block"].(map[string]interface{}); ok {
+		if cb["type"] != "text" {
+			t.Errorf("text content_block type: expected 'text', got %q", cb["type"])
+		}
+	} else {
+		t.Error("text content_block_start missing 'content_block' field")
+	}
+
+	// content_block_delta text → index 1
+	textDelta := decodePayload(events[4])
+	if idx := getIndex(textDelta); idx != 1 {
+		t.Errorf("text content_block_delta: expected index 1, got %d", idx)
+	}
+	if !strings.Contains(events[4]["data"], "42") {
+		t.Error("text delta should contain '42'")
+	}
+
+	// content_block_stop events → indices 0 then 1
+	for i, expectedIdx := range []int{0, 1} {
+		stopPayload := decodePayload(events[5+i])
+		if idx := getIndex(stopPayload); idx != expectedIdx {
+			t.Errorf("content_block_stop[%d]: expected index %d, got %d", i, expectedIdx, idx)
+		}
 	}
 }
 
