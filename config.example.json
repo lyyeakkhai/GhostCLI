@@ -1,0 +1,49 @@
+{
+  "port": 3200,
+  "host": "127.0.0.1",
+  "timeout": 300,
+  "active_provider": "deepseek",
+  "cors_origin": "*",
+  "verbose": false,
+  "providers": {
+    "deepseek": {
+      "name": "deepseek",
+      "pattern": "openai",
+      "base_url": "https://api.deepseek.com",
+      "api_key": "sk-your-deepseek-api-key-here",
+      "model_map": {
+        "claude-3-5-sonnet": "deepseek-chat",
+        "claude-3-opus": "deepseek-chat"
+      }
+    },
+    "kimi": {
+      "name": "kimi",
+      "pattern": "openai",
+      "base_url": "https://api.moonshot.cn",
+      "api_key": "sk-your-kimi-api-key-here",
+      "model_map": {
+        "claude-3-5-sonnet": "moonshot-v1-128k",
+        "claude-3-opus": "moonshot-v1-128k"
+      }
+    },
+    "openai": {
+      "name": "openai",
+      "pattern": "openai",
+      "base_url": "https://api.openai.com",
+      "api_key": "sk-your-openai-api-key-here",
+      "model_map": {
+        "claude-3-5-sonnet": "gpt-4o",
+        "claude-3-opus": "gpt-4"
+      }
+    },
+    "kiro": {
+      "name": "kiro",
+      "pattern": "aws",
+      "base_url": "https://api.kiro.ai",
+      "api_key": "your-kiro-api-key-here",
+      "model_map": {
+        "claude-3-5-sonnet": "kiro-chat"
+      }
+    }
+  }
+}

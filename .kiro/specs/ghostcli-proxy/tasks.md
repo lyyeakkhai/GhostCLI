@@ -13,22 +13,22 @@ This implementation plan breaks down the GhostCLI proxy server into discrete cod
   - Define event type constants and shared protocol utilities in `internal/engine/protocol/constants.go`
   - _Requirements: 1, 2, 4, 5_
 
-- [ ] 2. Implement configuration management layer
-  - [ ] 2.1 Create configuration structures and file loading
+- [x] 2. Implement configuration management layer
+  - [x] 2.1 Create configuration structures and file loading
     - Implement Config and ProviderConfig structs in `internal/config/config.go`
     - Add YAML and JSON configuration file parsing
     - Implement configuration merging (file → env vars → CLI flags)
     - Add validation for required configuration fields
     - _Requirements: 9, 21_
   
-  - [ ] 2.2 Implement secure API key storage
+  - [x] 2.2 Implement secure API key storage
     - Create SecureStorage struct with OS keyring integration in `internal/config/storage.go`
     - Implement encrypted file fallback using machine UUID-derived key
     - Add SaveAPIKey, GetAPIKey, and DeleteAPIKey methods
     - Create EncryptedFile implementation in `internal/config/encrypted_file.go`
     - _Requirements: 10, 30_
   
-  - [ ] 2.3 Add API key validation
+  - [x] 2.3 Add API key validation
     - Implement provider-specific API key format validation in `internal/config/validation.go`
     - Add test request functionality to validate keys against provider APIs
     - Implement validation error handling and reporting
