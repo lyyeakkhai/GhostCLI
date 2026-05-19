@@ -2226,7 +2226,7 @@ jobs:
 
 *A property is a characteristic or behavior that should hold true across all valid executions of a system—essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
 
-### Property Reflection
+**Property Reflection**
 
 After analyzing all acceptance criteria, the following properties were identified as suitable for property-based testing. Many criteria were classified as EXAMPLE, INTEGRATION, SMOKE, or EDGE_CASE tests, which are better suited for unit tests and integration tests rather than property-based testing.
 

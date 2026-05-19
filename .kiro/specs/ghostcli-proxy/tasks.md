@@ -97,26 +97,26 @@ This implementation plan breaks down the GhostCLI proxy server into discrete cod
     - Implement AWS-specific request format conversion
     - _Requirements: 4_
 
-- [ ] 7. Implement specific provider adapters
-  - [ ] 7.1 Create DeepSeek adapter
+- [x] 7. Implement specific provider adapters
+  - [x] 7.1 Create DeepSeek adapter
     - Implement DeepSeek adapter in `internal/providers/deepseek/adapter.go`
     - Configure OpenAI base with DeepSeek-specific settings (api.deepseek.com, model mapping)
     - Add DeepSeek configuration in `internal/providers/deepseek/config.go`
     - _Requirements: 6_
   
-  - [ ] 7.2 Create Kimi adapter
+  - [x] 7.2 Create Kimi adapter
     - Implement Kimi adapter in `internal/providers/kimi/adapter.go`
     - Configure OpenAI base with Kimi-specific settings (api.moonshot.cn, model mapping)
     - Add Kimi configuration
     - _Requirements: 7_
   
-  - [ ] 7.3 Create OpenAI adapter
+  - [x] 7.3 Create OpenAI adapter
     - Implement OpenAI adapter in `internal/providers/openai/adapter.go`
     - Configure OpenAI base with OpenAI-specific settings (api.openai.com, model mapping)
     - Add OpenAI configuration
     - _Requirements: 8_
   
-  - [ ] 7.4 Create Kiro adapter
+  - [x] 7.4 Create Kiro adapter
     - Implement Kiro adapter in `internal/providers/kiro/adapter.go`
     - Configure AWS base with Kiro-specific settings
     - Add Kiro configuration
