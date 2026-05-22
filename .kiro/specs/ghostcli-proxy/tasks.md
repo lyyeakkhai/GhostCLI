@@ -122,58 +122,58 @@ This implementation plan breaks down the GhostCLI proxy server into discrete cod
     - Add Kiro configuration
     - _Requirements: 4_
 
-- [ ] 8. Implement HTTP transport layer
-  - [ ] 8.1 Create HTTP server setup
+- [x] 8. Implement HTTP transport layer
+  - [x] 8.1 Create HTTP server setup
     - Implement server initialization in `internal/api/server.go`
     - Add HTTP/1.1 and HTTP/2 support
     - Implement graceful shutdown with timeout
     - Add port binding and error handling
     - _Requirements: 1, 13_
   
-  - [ ] 8.2 Create request handlers
+  - [x] 8.2 Create request handlers
     - Implement /v1/messages POST handler in `internal/api/handlers.go`
     - Add 404 handler for unsupported paths
     - Implement request routing logic
     - _Requirements: 1, 2_
   
-  - [ ] 8.3 Implement middleware
+  - [x] 8.3 Implement middleware
     - Create CORS middleware in `internal/api/middleware.go`
     - Add structured logging middleware
     - Implement context propagation middleware
     - Add request timeout middleware
     - _Requirements: 14, 17, 28, 29_
   
-  - [ ] 8.4 Create health check endpoint
+  - [x] 8.4 Create health check endpoint
     - Implement /health GET handler in `internal/api/health.go`
     - Add JSON response with status, provider, and version
     - Ensure sub-100ms response time
     - _Requirements: 22_
 
-- [ ] 9. Checkpoint - Ensure HTTP layer tests pass
+- [x] 9. Checkpoint - Ensure HTTP layer tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. Implement telemetry layer
-  - [ ] 10.1 Create structured logging
+- [x] 10. Implement telemetry layer
+  - [x] 10.1 Create structured logging
     - Implement logger setup with slog in `internal/telemetry/logger.go`
     - Add log level configuration (debug, info, warn, error)
     - Implement request/response logging with timestamps
     - Add TTFT and duration metrics logging
     - _Requirements: 17_
   
-  - [ ] 10.2 Add performance metrics
+  - [x] 10.2 Add performance metrics
     - Implement metrics collection in `internal/telemetry/metrics.go`
     - Add TTFT tracking
     - Add request duration tracking
     - _Requirements: 17, 24_
 
-- [ ] 11. Implement application orchestration layer
-  - [ ] 11.1 Create application struct and DI container
+- [x] 11. Implement application orchestration layer
+  - [x] 11.1 Create application struct and DI container
     - Implement App struct in `internal/app/app.go`
     - Add dependency injection for all components
     - Create component initialization logic
     - _Requirements: 1, 3, 27_
   
-  - [ ] 11.2 Implement lifecycle management
+  - [x] 11.2 Implement lifecycle management
     - Create startup logic in `internal/app/lifecycle.go`
     - Implement graceful shutdown with signal handling
     - Add component cleanup on shutdown
