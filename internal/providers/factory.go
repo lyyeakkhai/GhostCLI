@@ -6,6 +6,9 @@ import (
 
 	"ghostcli/internal/config"
 	"ghostcli/internal/providers/base"
+	"ghostcli/internal/providers/deepseek"
+	"ghostcli/internal/providers/kimi"
+	"ghostcli/internal/providers/openai"
 )
 
 // Factory creates provider instances with dependency injection.
@@ -72,9 +75,25 @@ func (f *Factory) CreateActiveProvider() (Provider, error) {
 // This pattern is used by providers like DeepSeek, Kimi, OpenAI, Groq, etc.
 // that implement the OpenAI Chat Completions API format.
 func (f *Factory) createOpenAICompatProvider(name string, cfg *config.ProviderConfig) (Provider, error) {
-	// TODO: Implement OpenAI-compatible provider creation
-	// This will be implemented in task 6.1 and 7.x
-	return nil, fmt.Errorf("OpenAI-compatible provider creation not yet implemented")
+	switch name {
+	case deepseek.ProviderName:
+		// Use the DeepSeek-specific adapter (thin wrapper over the OpenAI base).
+		return deepseek.NewAdapterWithBaseURL(cfg.BaseURL, cfg.APIKey, cfg.ModelMap, f.logger), nil
+	case kimi.ProviderName:
+		// Use the Kimi-specific adapter (thin wrapper over the OpenAI base).
+		return kimi.NewAdapterWithBaseURL(cfg.BaseURL, cfg.APIKey, cfg.ModelMap, f.logger), nil
+	case openai.ProviderName:
+		// Use the OpenAI-specific adapter (thin wrapper over the OpenAI base).
+		return openai.NewAdapterWithBaseURL(cfg.BaseURL, cfg.APIKey, cfg.ModelMap, f.logger), nil
+	default:
+		// Generic OpenAI-compatible adapter for any unrecognised provider name.
+		return base.NewOpenAIAdapter(base.OpenAIConfig{
+			Name:     name,
+			BaseURL:  cfg.BaseURL,
+			APIKey:   cfg.APIKey,
+			ModelMap: cfg.ModelMap,
+		}, f.logger), nil
+	}
 }
 
 // createAnthropicNativeProvider creates a provider adapter for Anthropic-native APIs.

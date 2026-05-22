@@ -97,97 +97,97 @@ This implementation plan breaks down the GhostCLI proxy server into discrete cod
     - Implement AWS-specific request format conversion
     - _Requirements: 4_
 
-- [ ] 7. Implement specific provider adapters
-  - [ ] 7.1 Create DeepSeek adapter
+- [x] 7. Implement specific provider adapters
+  - [x] 7.1 Create DeepSeek adapter
     - Implement DeepSeek adapter in `internal/providers/deepseek/adapter.go`
     - Configure OpenAI base with DeepSeek-specific settings (api.deepseek.com, model mapping)
     - Add DeepSeek configuration in `internal/providers/deepseek/config.go`
     - _Requirements: 6_
   
-  - [ ] 7.2 Create Kimi adapter
+  - [x] 7.2 Create Kimi adapter
     - Implement Kimi adapter in `internal/providers/kimi/adapter.go`
     - Configure OpenAI base with Kimi-specific settings (api.moonshot.cn, model mapping)
     - Add Kimi configuration
     - _Requirements: 7_
   
-  - [ ] 7.3 Create OpenAI adapter
+  - [x] 7.3 Create OpenAI adapter
     - Implement OpenAI adapter in `internal/providers/openai/adapter.go`
     - Configure OpenAI base with OpenAI-specific settings (api.openai.com, model mapping)
     - Add OpenAI configuration
     - _Requirements: 8_
   
-  - [ ] 7.4 Create Kiro adapter
+  - [x] 7.4 Create Kiro adapter
     - Implement Kiro adapter in `internal/providers/kiro/adapter.go`
     - Configure AWS base with Kiro-specific settings
     - Add Kiro configuration
     - _Requirements: 4_
 
-- [ ] 8. Implement HTTP transport layer
-  - [ ] 8.1 Create HTTP server setup
+- [x] 8. Implement HTTP transport layer
+  - [x] 8.1 Create HTTP server setup
     - Implement server initialization in `internal/api/server.go`
     - Add HTTP/1.1 and HTTP/2 support
     - Implement graceful shutdown with timeout
     - Add port binding and error handling
     - _Requirements: 1, 13_
   
-  - [ ] 8.2 Create request handlers
+  - [x] 8.2 Create request handlers
     - Implement /v1/messages POST handler in `internal/api/handlers.go`
     - Add 404 handler for unsupported paths
     - Implement request routing logic
     - _Requirements: 1, 2_
   
-  - [ ] 8.3 Implement middleware
+  - [x] 8.3 Implement middleware
     - Create CORS middleware in `internal/api/middleware.go`
     - Add structured logging middleware
     - Implement context propagation middleware
     - Add request timeout middleware
     - _Requirements: 14, 17, 28, 29_
   
-  - [ ] 8.4 Create health check endpoint
+  - [x] 8.4 Create health check endpoint
     - Implement /health GET handler in `internal/api/health.go`
     - Add JSON response with status, provider, and version
     - Ensure sub-100ms response time
     - _Requirements: 22_
 
-- [ ] 9. Checkpoint - Ensure HTTP layer tests pass
+- [x] 9. Checkpoint - Ensure HTTP layer tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. Implement telemetry layer
-  - [ ] 10.1 Create structured logging
+- [x] 10. Implement telemetry layer
+  - [x] 10.1 Create structured logging
     - Implement logger setup with slog in `internal/telemetry/logger.go`
     - Add log level configuration (debug, info, warn, error)
     - Implement request/response logging with timestamps
     - Add TTFT and duration metrics logging
     - _Requirements: 17_
   
-  - [ ] 10.2 Add performance metrics
+  - [x] 10.2 Add performance metrics
     - Implement metrics collection in `internal/telemetry/metrics.go`
     - Add TTFT tracking
     - Add request duration tracking
     - _Requirements: 17, 24_
 
-- [ ] 11. Implement application orchestration layer
-  - [ ] 11.1 Create application struct and DI container
+- [x] 11. Implement application orchestration layer
+  - [x] 11.1 Create application struct and DI container
     - Implement App struct in `internal/app/app.go`
     - Add dependency injection for all components
     - Create component initialization logic
     - _Requirements: 1, 3, 27_
   
-  - [ ] 11.2 Implement lifecycle management
+  - [x] 11.2 Implement lifecycle management
     - Create startup logic in `internal/app/lifecycle.go`
     - Implement graceful shutdown with signal handling
     - Add component cleanup on shutdown
     - _Requirements: 13_
 
-- [ ] 12. Implement CLI layer
-  - [ ] 12.1 Create main CLI entry point
+- [x] 12. Implement CLI layer
+  - [x] 12.1 Create main CLI entry point
     - Implement main.go in `cmd/ghost/main.go`
     - Add command-line flag parsing (port, provider, api-key, verbose, config, timeout, cors-origin)
     - Add environment variable support
     - Implement bootstrap logic with App initialization
     - _Requirements: 9, 28, 29_
   
-  - [ ] 12.2 Create interactive setup wizard
+  - [x] 12.2 Create interactive setup wizard
     - Implement setup wizard in `cmd/ghost/setup.go`
     - Add provider selection prompt with pattern family labels
     - Add masked API key input
@@ -195,14 +195,14 @@ This implementation plan breaks down the GhostCLI proxy server into discrete cod
     - Add configuration save after setup completion
     - _Requirements: 11_
   
-  - [ ] 12.3 Add version command
+  - [x] 12.3 Add version command
     - Implement version command in `cmd/ghost/version.go`
     - Add semantic version display
     - Include Git commit hash and build date
     - Use Go build flags for version embedding
     - _Requirements: 26_
   
-  - [ ] 12.4 Add configuration clear command
+  - [x] 12.4 Add configuration clear command
     - Implement --clear-keys command handling
     - Add confirmation prompt (unless --force flag)
     - Implement keyring and encrypted file deletion

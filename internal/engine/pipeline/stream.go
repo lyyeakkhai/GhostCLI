@@ -193,6 +193,10 @@ func (p *StreamPipeline) Execute(
 	w http.ResponseWriter,
 	req *protocol.UnifiedChatRequest,
 ) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	p.logger.Debug("pipeline execute: starting StreamChat",
 		"model", req.Model,
 		"stream", req.Stream,
