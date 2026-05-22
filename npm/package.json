@@ -1,0 +1,48 @@
+{
+  "name": "@ghostcli/proxy",
+  "version": "0.1.0",
+  "description": "GhostCLI — a high-performance proxy connecting Claude Code to alternative LLM providers (DeepSeek, Kimi, OpenAI, Kiro)",
+  "keywords": [
+    "claude",
+    "anthropic",
+    "deepseek",
+    "kimi",
+    "openai",
+    "llm",
+    "proxy",
+    "ai",
+    "chatgpt"
+  ],
+  "homepage": "https://github.com/ghostcli/ghostcli",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ghostcli/ghostcli.git"
+  },
+  "license": "MIT",
+  "author": "GhostCLI Team",
+  "bin": {
+    "ghost": "./bin/ghost"
+  },
+  "files": [
+    "bin/",
+    "install.js",
+    "package.json",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node install.js",
+    "preuninstall": "node install.js --uninstall"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ]
+}
