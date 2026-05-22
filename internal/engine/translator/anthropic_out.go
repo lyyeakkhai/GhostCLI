@@ -79,6 +79,11 @@ func (f *AnthropicOutFormatter) StreamToWriter(
 
 	// Process events from the channel
 	for {
+		if err := ctx.Err(); err != nil {
+			f.logger.Debug("context cancelled during streaming")
+			return err
+		}
+
 		select {
 		case <-ctx.Done():
 			f.logger.Debug("context cancelled during streaming")

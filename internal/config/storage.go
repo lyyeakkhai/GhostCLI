@@ -141,6 +141,19 @@ func (s *SecureStorage) DeleteAPIKey(provider string) error {
 	return nil
 }
 
+// NewDefaultSecureStorage creates a SecureStorage with the built-in keyring probe
+// and encrypted-file factory. It is a convenience wrapper for callers that don't
+// need to inject custom implementations.
+func NewDefaultSecureStorage(logger *slog.Logger) (*SecureStorage, error) {
+	probe := func() bool {
+		return testKeyringAvailability()
+	}
+	factory := func() (EncryptedFileProvider, error) {
+		return NewEncryptedFile()
+	}
+	return NewSecureStorage(logger, probe, factory)
+}
+
 // testKeyringAvailability tests if the OS keyring is available and functional.
 func testKeyringAvailability() bool {
 	testKey := "__ghostcli_test__"
