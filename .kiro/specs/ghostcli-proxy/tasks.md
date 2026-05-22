@@ -179,15 +179,15 @@ This implementation plan breaks down the GhostCLI proxy server into discrete cod
     - Add component cleanup on shutdown
     - _Requirements: 13_
 
-- [ ] 12. Implement CLI layer
-  - [ ] 12.1 Create main CLI entry point
+- [x] 12. Implement CLI layer
+  - [x] 12.1 Create main CLI entry point
     - Implement main.go in `cmd/ghost/main.go`
     - Add command-line flag parsing (port, provider, api-key, verbose, config, timeout, cors-origin)
     - Add environment variable support
     - Implement bootstrap logic with App initialization
     - _Requirements: 9, 28, 29_
   
-  - [ ] 12.2 Create interactive setup wizard
+  - [x] 12.2 Create interactive setup wizard
     - Implement setup wizard in `cmd/ghost/setup.go`
     - Add provider selection prompt with pattern family labels
     - Add masked API key input
@@ -195,14 +195,14 @@ This implementation plan breaks down the GhostCLI proxy server into discrete cod
     - Add configuration save after setup completion
     - _Requirements: 11_
   
-  - [ ] 12.3 Add version command
+  - [x] 12.3 Add version command
     - Implement version command in `cmd/ghost/version.go`
     - Add semantic version display
     - Include Git commit hash and build date
     - Use Go build flags for version embedding
     - _Requirements: 26_
   
-  - [ ] 12.4 Add configuration clear command
+  - [x] 12.4 Add configuration clear command
     - Implement --clear-keys command handling
     - Add confirmation prompt (unless --force flag)
     - Implement keyring and encrypted file deletion
