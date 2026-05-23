@@ -1,0 +1,16 @@
+port: 3200
+host: 127.0.0.1
+timeout: 300
+active_provider: kimi
+verbose: true
+providers:
+  kimi:
+    name: kimi
+    pattern: openai
+    base_url: https://api.moonshot.cn/v1
+    api_key: sk-placeholder-replace-with-real-key
+    model_map:
+      claude-3-5-sonnet-20241022: moonshot-v1-128k
+      claude-3-5-sonnet: moonshot-v1-128k
+      claude-3-opus: moonshot-v1-128k
+      claude-3-haiku: moonshot-v1-8k
