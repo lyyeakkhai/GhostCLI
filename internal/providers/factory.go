@@ -8,6 +8,7 @@ import (
 	"ghostcli/internal/providers/base"
 	"ghostcli/internal/providers/deepseek"
 	"ghostcli/internal/providers/kimi"
+	"ghostcli/internal/providers/kiro"
 	"ghostcli/internal/providers/openai"
 )
 
@@ -114,9 +115,18 @@ func (f *Factory) createAnthropicNativeProvider(name string, cfg *config.Provide
 // This pattern is used by providers like Kiro and Amazon Bedrock that use
 // the AWS EventStream binary protocol.
 func (f *Factory) createAWSEventStreamProvider(name string, cfg *config.ProviderConfig) (Provider, error) {
-	// TODO: Implement AWS EventStream provider creation
-	// This will be implemented in task 6.3
-	return nil, fmt.Errorf("AWS EventStream provider creation not yet implemented")
+	switch name {
+	case kiro.ProviderName:
+		return kiro.NewAdapterWithBaseURL(cfg.BaseURL, cfg.APIKey, cfg.ModelMap, f.logger), nil
+	default:
+		return base.NewAWSAdapter(base.AWSAdapterConfig{
+			Name:     name,
+			BaseURL:  cfg.BaseURL,
+			APIKey:   cfg.APIKey,
+			ModelMap: cfg.ModelMap,
+			Logger:   f.logger,
+		}), nil
+	}
 }
 
 // ListSupportedPatterns returns a list of supported provider patterns.

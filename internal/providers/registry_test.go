@@ -1,45 +1,10 @@
 package providers
 
 import (
-	"context"
+	"fmt"
 	"sync"
 	"testing"
-
-	"ghostcli/internal/engine/protocol"
 )
-
-// mockProvider is a test implementation of the Provider interface
-type mockProvider struct {
-	name            string
-	supportsTools   bool
-	supportsThinking bool
-	modelMap        map[string]string
-}
-
-func (m *mockProvider) StreamChat(ctx context.Context, req *protocol.UnifiedChatRequest) (<-chan protocol.UnifiedStreamEvent, error) {
-	ch := make(chan protocol.UnifiedStreamEvent)
-	close(ch)
-	return ch, nil
-}
-
-func (m *mockProvider) Name() string {
-	return m.name
-}
-
-func (m *mockProvider) SupportsTools() bool {
-	return m.supportsTools
-}
-
-func (m *mockProvider) SupportsThinking() bool {
-	return m.supportsThinking
-}
-
-func (m *mockProvider) MapModel(anthropicModel string) string {
-	if mapped, ok := m.modelMap[anthropicModel]; ok {
-		return mapped
-	}
-	return anthropicModel
-}
 
 func TestNewRegistry(t *testing.T) {
 	registry := NewRegistry()

@@ -57,10 +57,11 @@ func run() error {
 		configPath = flag.String("config", "", "Path to configuration file")
 		timeout    = flag.Int("timeout", 0, "Request timeout in seconds")
 		corsOrigin = flag.String("cors-origin", "", "CORS allowed origin")
-		setupMode  = flag.Bool("setup", false, "Run interactive setup wizard")
-		versionMode= flag.Bool("version", false, "Print version information")
-		clearKeys  = flag.Bool("clear-keys", false, "Delete all stored API keys")
-		force      = flag.Bool("force", false, "Skip confirmation prompts")
+		setupMode   = flag.Bool("setup", false, "Run interactive setup wizard")
+		versionMode = flag.Bool("version", false, "Print version information")
+		clearKeys   = flag.Bool("clear-keys", false, "Delete all stored API keys")
+		force       = flag.Bool("force", false, "Skip confirmation prompts")
+		launchClaude= flag.Bool("claude", false, "Auto-launch Claude Code after proxy starts")
 	)
 	flag.Parse()
 
@@ -131,7 +132,7 @@ func run() error {
 	}
 
 	// Create application
-	application, err := app.NewApp(cfg, logger)
+	application, err := app.NewAppWithClaude(cfg, logger, *launchClaude)
 	if err != nil {
 		return fmt.Errorf("initialise app: %w", err)
 	}

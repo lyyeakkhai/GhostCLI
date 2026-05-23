@@ -1,0 +1,13 @@
+time=2026-05-23T01:57:05.615+07:00 level=INFO message="starting GhostCLI proxy" version=dev provider=kimi addr=:3200
+time=2026-05-23T01:57:05.631+07:00 level=INFO message="server starting" addr=:3200
+time=2026-05-23T01:57:05.729+07:00 level=INFO message="launching Claude Code" path=C:\Users\yeakk\AppData\Roaming\npm\claude.cmd anthropic_base_url=http://127.0.0.1:3200
+time=2026-05-23T01:57:05.766+07:00 level=INFO message="Claude Code started" pid=45408
+time=2026-05-23T01:57:06.424+07:00 level=INFO message=request method=HEAD path=/ remote=127.0.0.1:55873
+time=2026-05-23T01:57:06.441+07:00 level=INFO message=response method=HEAD path=/ duration_ms=17
+Error: Input must be provided either through stdin or as a prompt argument when using --print
+time=2026-05-23T01:57:07.389+07:00 level=WARN message="Claude Code exited with error" error="exit status 1"
+time=2026-05-23T02:19:36.478+07:00 level=INFO message="shutdown signal received" signal=terminated
+time=2026-05-23T02:19:36.480+07:00 level=INFO message="stopping Claude Code" pid=45408
+time=2026-05-23T02:19:36.480+07:00 level=INFO message="initiating graceful shutdown" timeout=5m0s
+time=2026-05-23T02:19:36.481+07:00 level=INFO message="server shutting down"
+time=2026-05-23T02:19:36.484+07:00 level=INFO message="graceful shutdown complete"
