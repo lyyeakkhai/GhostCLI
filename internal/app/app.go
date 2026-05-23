@@ -22,13 +22,15 @@ var version = "dev"
 // App is the top-level application container. It holds references to all
 // major components and coordinates their lifecycle.
 type App struct {
-	Config     *config.Config
-	Logger     *slog.Logger
-	Provider   providers.Provider
-	Registry   *providers.Registry
-	Server     *api.Server
-	Metrics    *telemetry.MetricsCollector
-	Version    string
+	Config         *config.Config
+	Logger         *slog.Logger
+	Provider       providers.Provider
+	Registry       *providers.Registry
+	Server         *api.Server
+	Metrics        *telemetry.MetricsCollector
+	Version        string
+	ClaudeLauncher *ClaudeLauncher
+	LaunchClaude   bool
 }
 
 // ProxyEngine implements the api.Engine interface by bridging the HTTP
@@ -97,15 +99,6 @@ func (e *ProxyEngine) StreamRequest(ctx context.Context, w http.ResponseWriter, 
 		return fmt.Errorf("provider stream: %w", err)
 	}
 
-	// Record TTFT when we receive the first event
-	go func() {
-		select {
-		case <-eventChan:
-			timer.RecordTTFT()
-		case <-ctx.Done():
-		}
-	}()
-
 	// Stream events through the Anthropic formatter
 	formatter := translator.NewAnthropicOutFormatter(e.logger)
 	if err := formatter.StreamToWriter(ctx, w, eventChan); err != nil {
@@ -130,6 +123,11 @@ func (e *ProxyEngine) Version() string {
 // NewApp creates an App by loading configuration, creating all components,
 // and wiring them together.
 func NewApp(cfg *config.Config, logger *slog.Logger) (*App, error) {
+	return NewAppWithClaude(cfg, logger, false)
+}
+
+// NewAppWithClaude creates an App and optionally prepares Claude Code auto-launch.
+func NewAppWithClaude(cfg *config.Config, logger *slog.Logger, launchClaude bool) (*App, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is nil")
 	}
@@ -170,15 +168,24 @@ func NewApp(cfg *config.Config, logger *slog.Logger) (*App, error) {
 	port := fmt.Sprintf("%d", cfg.Port)
 	server := api.NewServer(port, engine, logger)
 
-	return &App{
-		Config:   cfg,
-		Logger:   logger,
-		Provider: provider,
-		Registry: registry,
-		Server:   server,
-		Metrics:  metrics,
-		Version:  version,
-	}, nil
+	app := &App{
+		Config:       cfg,
+		Logger:       logger,
+		Provider:     provider,
+		Registry:     registry,
+		Server:       server,
+		Metrics:      metrics,
+		Version:      version,
+		LaunchClaude: launchClaude,
+	}
+
+	// Prepare Claude launcher if requested
+	if launchClaude {
+		baseURL := fmt.Sprintf("http://%s:%d", cfg.Host, cfg.Port)
+		app.ClaudeLauncher = NewClaudeLauncher(logger, baseURL)
+	}
+
+	return app, nil
 }
 
 // ProviderName returns the name of the currently active provider.
